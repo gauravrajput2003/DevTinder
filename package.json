@@ -1,0 +1,22 @@
+{
+  "name": "devtinder",
+  "version": "1.0.0",
+  "description": "This is dev tinder project",
+  "keywords": [
+    "node",
+    "js",
+    "express",
+    "js"
+  ],
+  "license": "ISC",
+  "author": "gaurav",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev":"nodemon src/app.js",
+    "start":"node src/app.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
