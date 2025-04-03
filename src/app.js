@@ -2,20 +2,24 @@ console.log("starting project");
 
 const express = require("express");
 const app = express();
-
-// Define a route for "/test"
-app.get("/test", (req, res) => {
+app.get("/user", (req, res) => {
+    res.send({"name":"gauarv","last":"singh"});
+});
+app.delete("/user", (req, res) => {
+    res.send("databse deleted successfully");
+});
+app.use("/test", (req, res) => {
     res.send("hello from abes test");
 });
-app.get("/bihar", (req, res) => {
-    res.send("hello from abes bihar");
-});
-app.get("/test", (req, res) => {
-    res.send("hello from abes test");
-});
+// app.use("/bihar", (req, res) => {
+//     res.send("hello from abes bihar");
+// });
+// app.use("/test", (req, res) => {
+//     res.send("hello from abes test");
+// });
 
-// Define a fallback route for all other requests
-app.get("/", (req, res) => {
+
+app.use("/", (req, res) => {
     res.send("hello from abes");
 });
 

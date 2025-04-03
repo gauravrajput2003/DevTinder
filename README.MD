@@ -1,0 +1,4 @@
+->npm init
+->npm i express
+->npm i -g nodemon
+->-g here is use for global label execution
