@@ -1,25 +1,31 @@
 const express = require("express");
-const connDB = require("./config/database"); // 
+const connDB = require("./config/database"); 
+const User = require("./models/user"); // Import once with capital U
 const app = express();
 
-(async () => {
-    try {
-        await connDB(); 
-    } catch (err) {
-        console.error("Failed to connect to the database. Exiting...");
-        process.exit(1); 
-    }
-})();
+// Add body parser middleware
+app.use(express.json());
 
-app.get("/admin/deleteUser", (req, res) => {
-    res.send("Deleted a user");
-});
+app.post("/signup", async(req, res) => {
+     const newUser = new User({
+        firstName: "sikhar",
+        lastName: "dhawan",
+        email: "sikhar@2003",
+        password: "hanji"
+     });
+     
+     await newUser.save();
+     res.send("data send successfully");
+})
 
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send("Something went wrong");
-});
+connDB()
+.then(() => {
+    console.log("database connect successfull");
+    app.listen(9931, () => {
+        console.log("server running on 9931...");
+    });  
+})
+.catch((err) => {
+    console.log("databse cannot be connected");
+})
 
-app.listen(9931, () => {
-    console.log("server running on 9931...");
-});  
