@@ -7,15 +7,19 @@ const app = express();
 app.use(express.json());
 
 app.post("/signup", async(req, res) => {
-     const newUser = new User({
-        firstName: "sikhar",
-        lastName: "dhawan",
-        email: "sikhar@2003",
-        password: "hanji"
-     });
+     const newUser = new User(req.body);
+     console.log(req);
+        // firstName: "sikhar",
+        // lastName: "dhawan",
+        // email: "sikhar@2003",
+        // password: "hanji"
      
+     try{
      await newUser.save();
-     res.send("data send successfully");
+     res.send("data send successfully");}
+     catch(err){
+res.status(400).send(err.message);
+     }
 })
 
 connDB()
