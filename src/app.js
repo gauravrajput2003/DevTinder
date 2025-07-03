@@ -1,7 +1,7 @@
 const express = require("express");
 const connDB = require("./config/database"); 
-const User = require("./models/user"); // Import once with capital U
-const {validateSignup}=require("./utils/validation");
+ // Import once with capital U
+
 const app = express();
 const bcrypt=require("bcrypt");
 const jwt=require("jsonwebtoken");
@@ -9,90 +9,21 @@ const jwt=require("jsonwebtoken");
 app.use(express.json());
 const cookieParser=require("cookie-parser");
 app.use(cookieParser());     //middleware    
-const {userAuth}=require("./middlewares/Auth");
+//routers
+const authRouter=require("./routes/auth");
+const profileRouter=require("./routes/profile");
+const requestRouter=require("./routes/requests");
 
-//signup api
-app.post("/signup", async(req, res) => {
-    //validation of data
-       try{ 
-    validateSignup(req);
-    const {firstName,lastName,email,password}=req.body;
-     //enscrypt password   
-const passwordHash=await bcrypt.hash(password,10);
-     const newUser = new User({
-        firstName,
-        lastName,
-        email,
-        password:passwordHash,
-     });
-     console.log(req);
-      
-     await newUser.save();
-     res.send("data send successfully");}
-     catch(err){
-res.status(400).send(err.message);
-     }
-});
-//login api
-app.post("/signin", async(req, res) => {
-    try {
-        // Check if email and password exist in request body
-        const {email, password} = req.body;
-        if (!email || !password) {
-            return res.status(400).send("ERROR: Email and password are required");
-        }
-        
-        const user = await User.findOne({email: email});
-        if (!user) {
-            throw new Error("email is not in DB");
-        }
-        
-        const isPass = await bcrypt.compare(password, user.password);
-        if (isPass) {
-            //jwt tokens
-            const token = jwt.sign({_id: user._id}, "Animal@@80"); // jwt.sign doesn't need await
-            console.log(token); 
-            //cookies
-            res.cookie("token", token);  
-            return res.send({
-                message: "login successful", 
-                user: {
-                    id: user._id,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email
-                }
-            });
-        } else {
-            throw new Error("invalid credential");
-        }
-    } catch (err) {
-        console.error("Login error:", err);
-        return res.status(400).send("ERROR: " + err.message);
-    }
-});
-//profile api
-app.get("/profile", userAuth, async(req, res) => {
-    try {
-        // Make sure req.user exists before using it
-        if (!req.user) {
-            return res.status(401).send("User authentication failed");
-        }
-
-        // Send the user data from the middleware
-        res.send(req.user);
-    } catch (err) {
-        console.error("Profile error:", err);
-        res.status(500).send("Server error: " + err.message);
-    }
-});
-//get email id 
+app.use("/",authRouter);//"/" means run for all the routes
+app.use("/",profileRouter);
+app.use("/",requestRouter);
 app.get("/user", async(req, res) => {
+
     const useremail = req.body.email;
     try {
         // Add await here, as User.find returns a Promise
         const users = await User.find({email: useremail});
-        
+             
         // Now we can safely check the length
         if(users.length === 0) {
             res.status(404).send("user not found");
@@ -174,4 +105,3 @@ connDB()
 .catch((err) => {
     console.log("databse cannot be connected");
 })
-

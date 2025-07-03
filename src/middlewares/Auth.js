@@ -13,9 +13,7 @@ const userAuth = async (req, res, next) => {
         }
         
         // Verify token
-        const decoded = jwt.verify(token, "Animal@@80",{
-            expiresIn:'7d'
-        });
+        const decoded = jwt.verify(token, "Animal@@80",);
         
         // Find user by id from token
         const user = await User.findById(decoded._id);
