@@ -14,4 +14,9 @@ const validateSignup=(req)=>{
         throw new Error("password is weak");
     }
 }
-module.exports={validateSignup}
+const validateEditProfile=(req)=>{
+    const allowed=["firstName","lastName","email","skills","photoUrl","about"];
+  const isEditAllowed=Object.keys(req.body).every((field)=>allowed.includes(field));
+  return isEditAllowed;
+}
+module.exports={validateSignup,validateEditProfile}
