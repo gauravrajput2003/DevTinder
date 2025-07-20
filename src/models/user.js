@@ -6,6 +6,8 @@ const UserSchema = mongoose.Schema({
     firstName:{
     type:String,
     required:true,
+    minLength:4,
+    maxLength:50,
     },
     lastName:{
     type:String, 
@@ -47,11 +49,15 @@ type:String,
    
     gender:{
     type:String,
-    validate(value){
-        if(!["male","female","other"].includes(value)){
-            throw new Error("gender data is not valid");
-        }   
+    enum:{
+        values:["male","female","other"],
+        message:`{VALUE} is not valid gender type`
     },
+    // validate(value){
+    //     if(!["male","female","other"].includes(value)){
+    //         throw new Error("gender data is not valid");
+    //     }   
+    // },
     },
     photoUrl:{
         type:String,
@@ -77,6 +83,10 @@ type:String,
     timestamps:true,
 }
 );
+UserSchema.index({firstName:1,lastName:1});
+UserSchema.index
+/* The `UserSchema.methods.getJWT` function is a method defined on the UserSchema model in Mongoose.
+This method is used to generate a JSON Web Token (JWT) for a user instance. */
 UserSchema.methods.getJWT=async function () {
     const user=this;
     const token=await jwt.sign({_id:user._id},"Animal@@80",{

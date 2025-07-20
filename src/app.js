@@ -1,7 +1,6 @@
 const express = require("express");
 const connDB = require("./config/database"); 
  // Import once with capital U
-
 const app = express();
 const bcrypt=require("bcrypt");
 const jwt=require("jsonwebtoken");
@@ -9,17 +8,17 @@ const jwt=require("jsonwebtoken");
 app.use(express.json());
 const cookieParser=require("cookie-parser");
 app.use(cookieParser());     //middleware    
-//routers
+//routers 
 const authRouter=require("./routes/auth");
 const profileRouter=require("./routes/profile");
 const requestRouter=require("./routes/requests");
 
-app.use("/",authRouter);//"/" means run for all the routes
+app.use("/",authRouter);
 app.use("/",profileRouter);
 app.use("/",requestRouter);
 app.get("/user", async(req, res) => {
 
-    const useremail = req.body.email;
+    const useremail =  req.body.email;
     try {
         // Add await here, as User.find returns a Promise
         const users = await User.find({email: useremail});
@@ -28,8 +27,9 @@ app.get("/user", async(req, res) => {
         if(users.length === 0) {
             res.status(404).send("user not found");
         }
-        else {
-            res.send(users);
+        else {     
+            res.send(users);  
+            
         }
     }
     catch(err) {
@@ -63,7 +63,7 @@ app.delete("/user", async(req, res) => {
    
      
     try {
-         const allowed_update=["userid","      photoUrl","about","skills","gender","age"];
+         const allowed_update=["userid","photoUrl","about","skills","gender","age"];
          const isupdate=Object.keys(data).every((k)=>allowed_update.includes(k));
          if(!isupdate){
             throw new Error("update not akkowed");   
@@ -94,7 +94,6 @@ app.delete("/user", async(req, res) => {
 });
 
 //send connnection request api
-
 connDB()
 .then(() => {
     console.log("database connect successfull");

@@ -1,33 +1,32 @@
- const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
-
-
+// The function MUST have `next` as the third parameter.
 const userAuth = async (req, res, next) => {
     try {
-        // Get token from cookies
         const token = req.cookies.token;
-        
         if (!token) {
-            return res.status(401).send("Token not found");
+            return res.status(401).send("Authentication failed: No token provided.");
         }
-        
-        // Verify token
-        const decoded = jwt.verify(token, "Animal@@80",);
-        
-        // Find user by id from token
-        const user = await User.findById(decoded._id);
-        
+
+        // Verify the token
+        const decoded = jwt.verify(token, "Animal@@80"); // Use your actual secret key
+
+        // Find the user from the token's ID
+        const user = await User.findById(decoded._id).select('-password');
+
         if (!user) {
-            return res.status(404).send("User not found");
+            return res.status(404).send("Authentication failed: User not found.");
         }
-        
-        // Set user in request object for route handlers to use
+
+        // Attach the user object to the request so other routes can use it
         req.user = user;
+        
+        // CRITICAL: Call next() to continue to the route handler in requests.js
         next();
+
     } catch (error) {
-        console.error("Auth middleware error:", error);
-        res.status(401).send("Authentication failed");
+        res.status(401).send("Authentication failed: Invalid token.");
     }
 };
 
