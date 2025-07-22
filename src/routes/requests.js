@@ -6,16 +6,13 @@ const user = require("../models/user");
 const connectionreq=require("../models/connnectionReq");
 const connectionReq = require("../models/connnectionReq");
 
-// Add your request-related routes here
+
 requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res) => {
     try {
         const fromUserId = req.user._id;
-        const toUserId = req.params.toUserid.trim(); // Trim to prevent ID errors
+        const toUserId = req.params.toUserid.trim();
         const status = req.params.status;
 
-        // --- All checks must happen BEFORE you save ---
-
-        // 1. Check if status is valid
         const allowed = ["ignore", "interested"];
         if (!allowed.includes(status)) {
             return res.status(400).json({ message: "Invalid status type: " + status });
@@ -37,8 +34,6 @@ requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res)
         if (existConnectiorReq) {
             return res.status(400).json({ message: "A connection request already exists with this user." });
         }
-
-        // --- If all checks pass, create and save the new request ---
         const connectionRequest = new connectionReq({
             fromUserId,
             toUserId,
@@ -46,7 +41,6 @@ requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res)
         });
         const data = await connectionRequest.save();
 
-        // --- Finally, send ONE success response ---
         res.json({
             message: `${req.user.firstName} is ${status} in ${toUser.firstName}`,
             data,
@@ -57,6 +51,52 @@ requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res)
             return res.status(400).send("Invalid User ID format.");
         }
         res.status(400).send(err.message);
+    }
+});
+requestRouter.post("/request/review/:status/:requestId", userAuth, async(req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const { status, requestId } = req.params;
+        console.log("Looking for request with:");
+        console.log("requestId:", requestId);
+        console.log("toUserId:", loggedInUser._id);
+        console.log("status: interested");
+        
+        const allowedStatus = ["accepted", "rejected"];
+        if (!allowedStatus.includes(status)) {
+            return res.status(400).json({ message: "status not allowed" });
+        }
+
+        const anyRequest = await connectionReq.findById(requestId);
+        console.log("Request exists:", anyRequest);
+
+        const connectionRequest = await connectionReq.findOne({
+            _id: requestId,
+            toUserId: loggedInUser._id,
+            status: "interested"
+        });
+        
+        if (!connectionRequest) {
+            return res.status(404).json({ 
+                message: "connection request not found",
+                debug: {
+                    requestId,
+                    loggedInUserId: loggedInUser._id,
+                    requestExists: !!anyRequest,
+                    actualRequest: anyRequest
+                }
+            });
+        }
+        
+        connectionRequest.status = status;
+        const data = await connectionRequest.save();
+        
+        res.json({ 
+            message: `connection request ${status}`, 
+            data 
+        });
+    } catch (err) {
+        res.status(400).send("error: " + err.message);
     }
 });
 
