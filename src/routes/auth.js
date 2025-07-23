@@ -28,7 +28,7 @@ res.status(400).send(err.message);
      }
 });
 
-authRouter.post("/signin", async(req, res) => {
+authRouter.post("/Login", async(req, res) => {
     try {
         // Check if email and password exist in request body
         const {email, password} = req.body;
