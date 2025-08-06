@@ -3,8 +3,13 @@ const connDB = require("./config/database");
  // Import once with capital U
 const app = express();
 const bcrypt=require("bcrypt");
+const cors=require("cors");
 const jwt=require("jsonwebtoken");
 //Add body parser middleware
+app.use(cors({
+    origin:["http://localhost:5173", "http://localhost:5174","http://localhost:5175","http://localhost:5176","http://localhost:5177"],
+    credentials:true,
+}));
 app.use(express.json());
 const cookieParser=require("cookie-parser");
 app.use(cookieParser());     //middleware    
@@ -99,7 +104,7 @@ app.delete("/user", async(req, res) => {
 connDB()
 .then(() => {
     console.log("database connect successfull");
-    app.listen(9931, () => {
+    app.listen(9931,'0.0.0.0',  () => {
         console.log("server running on 9931...");
     });  
 })

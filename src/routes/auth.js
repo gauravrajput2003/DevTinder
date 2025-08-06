@@ -21,8 +21,13 @@ const passwordHash=await bcrypt.hash(password,10);
      });
      console.log(req);
       
-     await newUser.save();
-     res.send("data send successfully");}
+     const saveduser=await newUser.save();
+     const token =await saveduser.getJWT(); 
+            res.cookie("token", token,{
+                expires: new Date(Date.now()+8*3600000),
+            });  
+           
+     res.json({message:"data send successfully",data:saveduser});}
      catch(err){
 res.status(400).send(err.message);
      }
@@ -45,17 +50,11 @@ authRouter.post("/Login", async(req, res) => {
         if (isPass) {
             //jwt tokens
             const token =await user.getJWT(); // jwt.sign doesn't need await
-            console.log(token); 
+            // console.log(token); 
             //cookies
             res.cookie("token", token);  
             return res.send({
-                message: "login successful", 
-                user: {
-                    id: user._id,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email
-                }
+               user
             });
         } else {
             throw new Error("invalid credential");
