@@ -8,23 +8,55 @@ const bcrypt=require("bcrypt");
 const cors=require("cors");
 const jwt=require("jsonwebtoken");
 
-// Socket.io setup with CORS - Add this before your existing middleware
+// Socket.io setup with CORS - include production domain(s)
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:5174","http://localhost:5175","http://localhost:5176","http://localhost:5177", "http://51.21.131.83"],
-    methods: ["GET", "POST"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://localhost:5176",
+      "http://localhost:5177",
+      "http://51.21.131.83",
+      "https://codeally.online",
+      "https://www.codeally.online"
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true
   }
 });
 
-//Add body parser middleware (your existing code)
-app.use(cors({
-    origin:["http://localhost:5173", "http://localhost:5174","http://localhost:5175","http://localhost:5176","http://localhost:5177", "http://51.21.131.83"],
-    credentials:true,
-}));
+// Trust proxy (needed when running behind Nginx/Ingress for proper HTTPS and cookies)
+app.set('trust proxy', 1);
+
+// CORS - include production domain(s) and methods; enable credentials
+const corsOptions = {
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177",
+    "http://51.21.131.83",
+    "https://codeally.online",
+    "https://www.codeally.online"
+  ],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
+app.use(cors(corsOptions));
+// Handle preflight
+app.options('*', cors(corsOptions));
 app.use(express.json());
 const cookieParser=require("cookie-parser");
 app.use(cookieParser());     //middleware    
+
+// Minimal request logger (useful on server to verify methods/paths)
+app.use((req, _res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 //routers (your existing code)
 const authRouter=require("./routes/auth");
@@ -32,10 +64,27 @@ const profileRouter=require("./routes/profile");
 const requestRouter=require("./routes/requests");
 const userRouter = require("./routes/user");
 
-app.use("/",authRouter);
-app.use("/",profileRouter);
-app.use("/",requestRouter);
-app.use("/",userRouter);
+// Mount routes under /api for deployed clients using /api prefix
+app.use("/api", authRouter);
+app.use("/api", profileRouter);
+app.use("/api", requestRouter);
+app.use("/api", userRouter);
+
+// Backward compatibility (optional): keep root mounts if some clients still call without /api
+app.use("/", authRouter);
+app.use("/", profileRouter);
+app.use("/", requestRouter);
+app.use("/", userRouter);
+
+// Health check for debugging
+app.get('/api/health', (_req, res) => res.status(200).json({ ok: true }));
+
+// Root OK endpoint
+app.get('/', (_req, res) => res.status(200).send('OK'));
+app.get('/api', (_req, res) => res.status(200).send('API OK'));
+
+// Generic preflight for /api
+app.options('/api/*', cors(corsOptions));
 
 // Socket.io logic - Add this section
 const userSocketMap = {};

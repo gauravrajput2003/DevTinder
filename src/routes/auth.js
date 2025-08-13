@@ -6,6 +6,8 @@ const User = require("../models/user");
 const {userAuth}=require("../middlewares/Auth");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const isProd = process.env.NODE_ENV === 'production';
+
 authRouter.post("/signup", async(req, res) => {
     //validation of data
        try{ 
@@ -24,6 +26,11 @@ const passwordHash=await bcrypt.hash(password,10);
      const saveduser=await newUser.save();
      const token =await saveduser.getJWT(); 
             res.cookie("token", token,{
+                httpOnly: true,
+                secure: true,
+                sameSite: 'None',
+                domain: isProd ? 'codeally.online' : undefined,
+                path: '/',
                 expires: new Date(Date.now()+8*3600000),
             });  
            
@@ -33,7 +40,7 @@ res.status(400).send(err.message);
      }
 });
 
-authRouter.post("/Login", async(req, res) => {
+const loginHandler = async(req, res) => {
     try {
         // Check if email and password exist in request body
         const {email, password} = req.body;
@@ -49,10 +56,15 @@ authRouter.post("/Login", async(req, res) => {
         const isPass = await user.validatePassword(password);
         if (isPass) {
             //jwt tokens
-            const token =await user.getJWT(); // jwt.sign doesn't need await
-            // console.log(token); 
-            //cookies
-            res.cookie("token", token);  
+                        const token =await user.getJWT();
+                        res.cookie("token", token, {
+                            httpOnly: true,
+                            secure: true,
+                            sameSite: 'None',
+                            domain: isProd ? 'codeally.online' : undefined,
+                            path: '/',
+                            maxAge: 8*3600000
+                        });  
             return res.send({
                user
             });
@@ -63,12 +75,20 @@ authRouter.post("/Login", async(req, res) => {
         console.error("Login error:", err);
         return res.status(400).send("ERROR: " + err.message);
     }
-});
-authRouter.post("/logout",async(req,res)=>
-{
-    res.cookie("token",null,{
-        expires:new Date(Date.now()),
-    })
+};
+
+// Support both /Login and /login paths
+authRouter.post("/Login", loginHandler);
+authRouter.post("/login", loginHandler);
+authRouter.post("/logout",async(req,res)=>{
+    res.cookie("token", null, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+        domain: isProd ? 'codeally.online' : undefined,
+        path: '/',
+        expires: new Date(Date.now()),
+    });
     res.send("logout successful!");
-})
+});
 module.exports=authRouter;
