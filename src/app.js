@@ -39,6 +39,7 @@ app.use("/",userRouter);
 
 // Socket.io logic - Add this section
 const userSocketMap = {};
+const onlineUsers = new Set(); // Track online users
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -50,9 +51,36 @@ io.on('connection', (socket) => {
     console.log(`User ${userId} joined with socket ${socket.id}`);
   });
 
+  // Handle user coming online
+  socket.on('userConnected', (data) => {
+    const { userId } = data;
+    onlineUsers.add(userId);
+    userSocketMap[userId] = socket.id;
+    
+    // Notify all users about this user being online
+    socket.broadcast.emit('userOnline', { userId });
+    
+    // Send current online users list to the newly connected user
+    socket.emit('onlineUsers', Array.from(onlineUsers));
+    
+    console.log(`User ${userId} is now online`);
+  });
+
+  // Handle user going offline
+  socket.on('userDisconnected', (data) => {
+    const { userId } = data;
+    onlineUsers.delete(userId);
+    delete userSocketMap[userId];
+    
+    // Notify all users about this user going offline
+    socket.broadcast.emit('userOffline', { userId });
+    
+    console.log(`User ${userId} is now offline`);
+  });
+
   // Handle sending messages
   socket.on('sendMessage', (data) => {
-    const { senderId, receiverId, message, senderName } = data;
+    const { senderId, receiverId, message, senderName, messageType, audioData } = data;
     const receiverSocketId = userSocketMap[receiverId];
     
     if (receiverSocketId) {
@@ -60,6 +88,8 @@ io.on('connection', (socket) => {
         senderId,
         senderName,
         message,
+        messageType: messageType || 'text',
+        audioData: audioData || null,
         timestamp: new Date()
       });
     }
@@ -91,10 +121,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    // Remove user from mapping
+    // Remove user from mapping and online users
     for (const userId in userSocketMap) {
       if (userSocketMap[userId] === socket.id) {
+        onlineUsers.delete(userId);
         delete userSocketMap[userId];
+        
+        // Notify all users about this user going offline
+        socket.broadcast.emit('userOffline', { userId });
+        console.log(`User ${userId} disconnected and is now offline`);
         break;
       }
     }
