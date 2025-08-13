@@ -1,30 +1,11 @@
 const express = require("express");
-const http = require('http'); // Add this for Socket.io
-const socketIo = require('socket.io'); // Add this for Socket.io
 const connDB = require("./config/database"); 
 const app = express();
-const server = http.createServer(app); // Create HTTP server for Socket.io
 const bcrypt=require("bcrypt");
 const cors=require("cors");
 const jwt=require("jsonwebtoken");
 
-// Socket.io setup with CORS - include production domain(s)
-const io = socketIo(server, {
-  cors: {
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:5176",
-      "http://localhost:5177",
-      "http://51.21.131.83",
-      "https://codeally.online",
-      "https://www.codeally.online"
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true
-  }
-});
+// Socket.io removed
 
 // Trust proxy (needed when running behind Nginx/Ingress for proper HTTPS and cookies)
 app.set('trust proxy', 1);
@@ -47,7 +28,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 // Handle preflight
-app.options('*', cors(corsOptions));
+// NOTE: Express 5 with path-to-regexp v6 no longer accepts '*' path patterns.
+// The CORS middleware will handle preflight without an explicit app.options line.
 app.use(express.json());
 const cookieParser=require("cookie-parser");
 app.use(cookieParser());     //middleware    
@@ -83,108 +65,9 @@ app.get('/api/health', (_req, res) => res.status(200).json({ ok: true }));
 app.get('/', (_req, res) => res.status(200).send('OK'));
 app.get('/api', (_req, res) => res.status(200).send('API OK'));
 
-// Generic preflight for /api
-app.options('/api/*', cors(corsOptions));
+// Generic preflight handled by CORS middleware
 
-// Socket.io logic - Add this section
-const userSocketMap = {};
-const onlineUsers = new Set(); // Track online users
-
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  // User joins with their ID
-  socket.on('join', (userId) => {
-    userSocketMap[userId] = socket.id;
-    socket.join(userId);
-    console.log(`User ${userId} joined with socket ${socket.id}`);
-  });
-
-  // Handle user coming online
-  socket.on('userConnected', (data) => {
-    const { userId } = data;
-    onlineUsers.add(userId);
-    userSocketMap[userId] = socket.id;
-    
-    // Notify all users about this user being online
-    socket.broadcast.emit('userOnline', { userId });
-    
-    // Send current online users list to the newly connected user
-    socket.emit('onlineUsers', Array.from(onlineUsers));
-    
-    console.log(`User ${userId} is now online`);
-  });
-
-  // Handle user going offline
-  socket.on('userDisconnected', (data) => {
-    const { userId } = data;
-    onlineUsers.delete(userId);
-    delete userSocketMap[userId];
-    
-    // Notify all users about this user going offline
-    socket.broadcast.emit('userOffline', { userId });
-    
-    console.log(`User ${userId} is now offline`);
-  });
-
-  // Handle sending messages
-  socket.on('sendMessage', (data) => {
-    const { senderId, receiverId, message, senderName, messageType, audioData } = data;
-    const receiverSocketId = userSocketMap[receiverId];
-    
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit('receiveMessage', {
-        senderId,
-        senderName,
-        message,
-        messageType: messageType || 'text',
-        audioData: audioData || null,
-        timestamp: new Date()
-      });
-    }
-  });
-
-  // Handle typing indicators
-  socket.on('typing', (data) => {
-    const { senderId, receiverId } = data;
-    const receiverSocketId = userSocketMap[receiverId];
-    
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit('userTyping', {
-        senderId,
-        isTyping: true
-      });
-    }
-  });
-
-  socket.on('stopTyping', (data) => {
-    const { senderId, receiverId } = data;
-    const receiverSocketId = userSocketMap[receiverId];
-    
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit('userTyping', {
-        senderId,
-        isTyping: false
-      });
-    }
-  });
-
-  socket.on('disconnect', () => {
-    // Remove user from mapping and online users
-    for (const userId in userSocketMap) {
-      if (userSocketMap[userId] === socket.id) {
-        onlineUsers.delete(userId);
-        delete userSocketMap[userId];
-        
-        // Notify all users about this user going offline
-        socket.broadcast.emit('userOffline', { userId });
-        console.log(`User ${userId} disconnected and is now offline`);
-        break;
-      }
-    }
-    console.log('User disconnected:', socket.id);
-  });
-});
+// Socket.io event handling removed
 
 // Your existing API routes (unchanged)
 app.get("/user", async(req, res) => {
@@ -266,13 +149,14 @@ app.patch("/user", async(req, res) => {
 
 //send connnection request api
 
-// Database connection and server start (CHANGE app.listen to server.listen)
+// Database connection and server start
 connDB()
 .then(() => {
     console.log("database connect successfull");
-    server.listen(9931,'0.0.0.0',  () => { // Changed from app.listen to server.listen
-        console.log("server running on 9931...");
-    });  
+  const PORT = process.env.PORT || 9931;
+  app.listen(PORT,'0.0.0.0',  () => {
+    console.log(`server running on ${PORT}...`);
+  });  
 })
 .catch((err) => {
     console.log("databse cannot be connected");
