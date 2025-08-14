@@ -53,10 +53,10 @@ app.use("/api", requestRouter);
 app.use("/api", userRouter);
 
 // Backward compatibility (optional): keep root mounts if some clients still call without /api
-app.use("/", authRouter);
-app.use("/", profileRouter);
-app.use("/", requestRouter);
-app.use("/", userRouter);
+// app.use("/", authRouter);
+// app.use("/", profileRouter);
+// app.use("/", requestRouter);
+// app.use("/", userRouter);
 
 // Health check for debugging
 app.get('/api/health', (_req, res) => res.status(200).json({ ok: true }));
