@@ -26,11 +26,7 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 };
-app.use(cors({
-    origin: '*',
-    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-    credentials: true
-}));
+app.use(cors(corsOptions));
 // Handle preflight
 // NOTE: Express 5 with path-to-regexp v6 no longer accepts '*' path patterns.
 // The CORS middleware will handle preflight without an explicit app.options line.
@@ -56,24 +52,13 @@ app.use("/api", profileRouter);
 app.use("/api", requestRouter);
 app.use("/api", userRouter);
 
-// Backward compatibility (optional): keep root mounts if some clients still call without /api
-// app.use("/", authRouter);
-// app.use("/", profileRouter);
-// app.use("/", requestRouter);
-// app.use("/", userRouter);
 
-// Health check for debugging
 app.get('/api/health', (_req, res) => res.status(200).json({ ok: true }));
 
 // Root OK endpoint
 app.get('/', (_req, res) => res.status(200).send('OK'));
 app.get('/api', (_req, res) => res.status(200).send('API OK'));
 
-// Generic preflight handled by CORS middleware
-
-// Socket.io event handling removed
-
-// Your existing API routes (unchanged)
 app.get("/user", async(req, res) => {
     const useremail =  req.body.email;
     try {
