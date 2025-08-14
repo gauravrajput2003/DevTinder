@@ -26,7 +26,11 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 };
-app.use(cors(corsOptions));
+app.use(cors({
+    origin: '*',
+    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+    credentials: true
+}));
 // Handle preflight
 // NOTE: Express 5 with path-to-regexp v6 no longer accepts '*' path patterns.
 // The CORS middleware will handle preflight without an explicit app.options line.
