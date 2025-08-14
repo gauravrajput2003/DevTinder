@@ -89,10 +89,6 @@ app.get("/user", async(req, res) => {
     }
 });
 
-//feed api
-app.get("/feed",(req,res)=>{
-
-});
 
 //delete user api
 app.delete("/user", async(req, res) => {
@@ -153,7 +149,7 @@ app.patch("/user", async(req, res) => {
 connDB()
 .then(() => {
     console.log("database connect successfull");
-  const PORT = process.env.PORT || 9931;
+  const PORT = 9931;
   app.listen(PORT,'0.0.0.0',  () => {
     console.log(`server running on ${PORT}...`);
   });  
