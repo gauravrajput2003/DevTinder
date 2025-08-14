@@ -1,31 +1,29 @@
+// 
 const express = require("express");
-const authRouter = express.Router();
-
-const { validateSignup } = require("../utils/validation");
-const User = require("../models/user");
 const bcrypt = require("bcrypt");
+const User = require("../models/user");
+const { validateSignup } = require("../utils/validation");
 
-const isProd = process.env.NODE_ENV === 'production';
+const authRouter = express.Router();
+const isProd = process.env.NODE_ENV === "production";
+
 const cookieBase = {
   httpOnly: true,
-  sameSite: isProd ? 'None' : 'Lax',
+  sameSite: isProd ? "None" : "Lax",
   secure: isProd,
-  path: '/',
+  path: "/",
 };
 
+// Signup
 authRouter.post("/signup", async (req, res) => {
   try {
-    // Validation of data
     validateSignup(req);
 
     const { firstName, lastName, password } = req.body;
     const email = (req.body.email || "").toLowerCase().trim();
 
-    // Encrypt the password
     const passwordHash = await bcrypt.hash(password, 10);
-    console.log(passwordHash);
 
-    //   Creating a new instance of the User model
     const user = new User({
       firstName,
       lastName,
@@ -36,14 +34,18 @@ authRouter.post("/signup", async (req, res) => {
     const savedUser = await user.save();
     const token = await savedUser.getJWT();
 
-    res.cookie("token", token, { ...cookieBase, expires: new Date(Date.now() + 8 * 3600000) });
+    res.cookie("token", token, {
+      ...cookieBase,
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
 
-    res.json({ message: "User Added successfully!", data: savedUser });
+    res.json({ message: "User added successfully!", data: savedUser });
   } catch (err) {
     res.status(400).send("ERROR : " + err.message);
   }
 });
 
+// Login
 authRouter.post("/login", async (req, res) => {
   try {
     const { password } = req.body;
@@ -54,27 +56,31 @@ authRouter.post("/login", async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      throw new Error("Invalid credentials");
-    }
+    if (!user) throw new Error("Invalid credentials");
+
     const isPasswordValid = await user.validatePassword(password);
+    if (!isPasswordValid) throw new Error("Invalid credentials");
 
-    if (isPasswordValid) {
-      const token = await user.getJWT();
+    const token = await user.getJWT();
 
-      res.cookie("token", token, { ...cookieBase, expires: new Date(Date.now() + 8 * 3600000) });
-      res.send({ user });
-    } else {
-      throw new Error("Invalid credentials");
-    }
+    res.cookie("token", token, {
+      ...cookieBase,
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
+
+    res.send({ user });
   } catch (err) {
     res.status(400).send("ERROR : " + err.message);
   }
 });
 
+// Logout
 authRouter.post("/logout", async (req, res) => {
-  res.cookie("token", null, { ...cookieBase, expires: new Date(Date.now()) });
-  res.send("Logout Successful!!");
+  res.cookie("token", null, {
+    ...cookieBase,
+    expires: new Date(Date.now()),
+  });
+  res.send("Logout successful!");
 });
 
 module.exports = authRouter;
