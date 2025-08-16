@@ -5,7 +5,7 @@ const { userAuth } = require("../middlewares/Auth");
 const user = require("../models/user");
 const connectionreq=require("../models/connnectionReq");
 const connectionReq = require("../models/connnectionReq");
-
+const sendEmail=require("../utils/sendEmail");
 
 requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res) => {
     try {
@@ -40,7 +40,23 @@ requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res)
             status,
         });
         const data = await connectionRequest.save();
-
+        
+        // Send email notification to the actual recipient (toUser)
+        try {
+            const emailRes = await sendEmail.run(
+                toUser.emailId,        // Send to the recipient's email (Sona's email)
+                toUser.firstName,      // Recipient's name (Sona)
+                req.user.firstName     // Sender's name (Piyush)
+            );
+            console.log(`Email sent to ${toUser.firstName} (${toUser.emailId}) about connection request from ${req.user.firstName}`);
+            console.log("Email response:", emailRes);
+        } catch (emailError) {
+            console.error("Email sending failed:", emailError.message);
+            // Don't fail the entire request if email fails
+        }
+        
+        console.log("Connection request saved successfully:", data._id);
+        
         res.json({
             message: `${req.user.firstName} is ${status} in ${toUser.firstName}`,
             data,

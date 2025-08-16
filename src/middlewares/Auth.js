@@ -10,7 +10,7 @@ const userAuth = async (req, res, next) => {
         }
 
         // Verify the token
-        const decoded = jwt.verify(token, "Animal@@80"); // Use your actual secret key
+        const decoded = jwt.verify(token, process.env.JWT_SECRETE); // Use your actual secret key
 
         // Find the user from the token's ID
         const user = await User.findById(decoded._id).select('-password');

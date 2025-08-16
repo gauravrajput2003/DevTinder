@@ -89,7 +89,7 @@ UserSchema.index
 This method is used to generate a JSON Web Token (JWT) for a user instance. */
 UserSchema.methods.getJWT=async function () {
     const user=this;
-    const token=await jwt.sign({_id:user._id},"Animal@@80",{
+    const token=await jwt.sign({_id:user._id},process.env.JWT_SECRETE,{
         expiresIn:"7d",
     });
     return token;

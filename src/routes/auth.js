@@ -3,10 +3,8 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const User = require("../models/user");
 const { validateSignup } = require("../utils/validation");
-
 const authRouter = express.Router();
 const isProd = process.env.NODE_ENV === "production";
-
 const cookieBase = {
   httpOnly: true,
   sameSite: isProd ? "None" : "Lax",
