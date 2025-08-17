@@ -6,17 +6,28 @@ const Payment = require("../models/payment");
 const { memberShipAmount } = require("../utils/constant");
 paymentrouter.post("/payment/create",userAuth,async(req,res)=>{
     try{
-      const{membershipType}=req.body;
-      const{firstName,lastName,email}=req.body;
+  const { membershipType } = req.body;
+  const body = req.body || {};
+  const firstName = body.firstName || req.user?.firstName || "";
+  const lastName = body.lastName || req.user?.lastName || "";
+  const email = body.email || req.user?.email || "";
+      if(!membershipType){
+        return res.status(400).json({message:"membershipType is required"});
+      }
+      const planKey = String(membershipType).toLowerCase();
+      const rupees = memberShipAmount[planKey];
+      if(!rupees){
+        return res.status(400).json({message:`Invalid membershipType: ${membershipType}`});
+      }
 const order= await razorpayInstance.orders.create({
-     amount: 500,  // paise
-  currency: memberShipAmount[membershipType]*100,
-  receipt: "order_rcptid",
+  amount: Math.round(rupees*100),  // paise
+  currency: "INR",
+  receipt: `order_${planKey}_${Date.now()}`,
   "notes":{
-    firstName,
-    lastName,
-    email,
-    membershipType:membershipType,
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    membershipType: planKey,
   },
 });
   // save it to database
@@ -35,8 +46,13 @@ const order= await razorpayInstance.orders.create({
    // rawOrder: order,
   });
 
-  // single response: include both the provider order and the saved payment doc
-  return res.status(201).json({... paymentDoc.toJSON() });
+  // single response: include the provider order, saved payment doc, and Razorpay keyId
+  return res.status(201).json({
+    message: "Order created",
+    keyId: process.env.RAZORPAY_KEY,
+    order,
+    payment: paymentDoc.toJSON(),
+  });
     }
     catch(err){
   console.log(err.message);
