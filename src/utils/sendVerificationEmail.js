@@ -1,5 +1,6 @@
 const { SendEmailCommand } = require("@aws-sdk/client-ses");
 const { sesClient } = require("./sesClient.js");
+const { sendSMTPMail } = require("./smtpClient");
 
 const createVerificationEmailCommand = (toAddress, verificationLink, firstName) => {
   return new SendEmailCommand({
@@ -100,14 +101,27 @@ const sendVerificationEmail = async (recipientEmail, firstName, verificationToke
   );
 
   try {
-    console.log(`Sending verification email to ${recipientEmail}...`);
+    console.log(`Attempting SES verification email to ${recipientEmail}...`);
     const result = await sesClient.send(sendEmailCommand);
-    console.log("Verification email sent successfully:", result);
-    return result;
-  } catch (caught) {
-    console.error("Verification email failed:", caught.message);
-    throw caught;
+    console.log("SES verification email sent:", result?.MessageId || result);
+    return { provider: "ses", result };
+  } catch (sesErr) {
+    console.warn("SES verification send failed, trying SMTP fallback:", sesErr?.message || sesErr);
   }
+
+  const html = sendEmailCommand.input.Message.Body.Html.Data;
+  const text = sendEmailCommand.input.Message.Body.Text.Data;
+  const subject = sendEmailCommand.input.Message.Subject.Data;
+  const from = process.env.SMTP_FROM || "noreply@codeally.online";
+  const smtpResult = await sendSMTPMail({
+    to: recipientEmail,
+    subject,
+    html,
+    text,
+    from,
+  });
+  console.log("SMTP verification email sent:", smtpResult?.messageId || smtpResult);
+  return { provider: "smtp", result: smtpResult };
 };
 
 module.exports = { sendVerificationEmail };

@@ -7,7 +7,8 @@ require('dotenv').config();
 const app = express();
 // Trust proxy for cookies when using HTTPS (Nginx, etc.)
 app.set("trust proxy", 1);
-
+//crons jb
+require("./utils/cronsjob");
 // CORS setup
 const corsOptions = {
   origin: [
@@ -39,11 +40,13 @@ const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/requests");
 const userRouter = require("./routes/user");
+const paymentRouter = require("./routes/payment");
 
 app.use("/api", authRouter);
 app.use("/api", profileRouter);
 app.use("/api", requestRouter);
 app.use("/api", userRouter);
+app.use("/api", paymentRouter);
 
 // Health check routes
 app.get("/", (_req, res) => res.status(200).send("OK"));
