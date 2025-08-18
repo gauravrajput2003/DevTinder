@@ -3,7 +3,9 @@ const { userAuth } = require("../middlewares/Auth");
 const paymentrouter=express.Router();
 const razorpayInstance=require("../utils/razorpay")
 const Payment = require("../models/payment");
+const User=require("../models/user");
 const { memberShipAmount } = require("../utils/constant");
+const {validateWebhookSignature} = require('razorpay/dist/utils/razorpay-utils');
 paymentrouter.post("/payment/create",userAuth,async(req,res)=>{
     try{
   const { membershipType } = req.body;
@@ -58,5 +60,92 @@ const order= await razorpayInstance.orders.create({
   console.log(err.message);
   res.status(400).json({message: "Payment order creation failed", error: err.message});
     }
-})
+});
+
+// Dedicated webhook handler (to be mounted with express.raw in app.js)
+async function webhookHandler(req, res){
+  try{
+    const signature = req.get('x-razorpay-signature');
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if(!signature){
+      return res.status(400).json({ msg: "Missing webhook signature" });
+    }
+    if(!secret){
+      return res.status(500).json({ msg: "Webhook secret not configured" });
+    }
+
+    // Razorpay requires the exact raw body string for signature verification
+    let rawBody;
+    if(Buffer.isBuffer(req.body)) rawBody = req.body.toString('utf8');
+    else if(typeof req.body === 'string') rawBody = req.body;
+    else rawBody = JSON.stringify(req.body || {});
+
+    const isValid = validateWebhookSignature(rawBody, signature, secret);
+    if(!isValid){
+      return res.status(400).json({ msg: "webhook signature is invalid" });
+    }
+
+    // Parse body for processing
+    let bodyObj = req.body;
+    if(Buffer.isBuffer(bodyObj) || typeof bodyObj === 'string'){
+      try { bodyObj = JSON.parse(rawBody); } catch(_e){
+        return res.status(400).json({ msg: "Invalid JSON payload" });
+      }
+    }
+
+    const event = bodyObj?.event || '';
+    const paymentEntity = bodyObj?.payload?.payment?.entity;
+
+    if(!paymentEntity){
+      // Not a payment.* event we care about; ack anyway
+      return res.status(200).json({ msg: "webhook received (ignored)" });
+    }
+
+    const orderId = paymentEntity.order_id;
+    const paymentId = paymentEntity.id;
+    const providerStatus = paymentEntity.status; // e.g., 'captured', 'failed', 'authorized'
+
+    if(!orderId){
+      return res.status(200).json({ msg: "webhook received (no order id)" });
+    }
+
+    const paymentDoc = await Payment.findOne({ orderId });
+    if(!paymentDoc){
+      // No matching order in our DB; ack to avoid retries but log server-side
+      console.warn(`[Webhook] Payment doc not found for order ${orderId}`);
+      return res.status(200).json({ msg: "ok" });
+    }
+
+    // Map provider status to our model status
+    let mappedStatus = paymentDoc.status;
+    if(providerStatus === 'captured') mappedStatus = 'paid';
+    else if(providerStatus === 'failed') mappedStatus = 'failed';
+    else if(providerStatus === 'authorized' || providerStatus === 'created') mappedStatus = 'attempted';
+
+    // Idempotency: only update if changed
+    paymentDoc.paymentId = paymentId || paymentDoc.paymentId;
+    paymentDoc.status = mappedStatus;
+    await paymentDoc.save();
+
+    // On success, upgrade user to premium
+    if(mappedStatus === 'paid'){
+      const userDoc = await User.findById(paymentDoc.userId);
+      if(userDoc){
+        userDoc.isPremium = true;
+        // Note schema uses memberShipType
+        userDoc.memberShipType = paymentDoc?.notes?.membershipType || userDoc.memberShipType;
+        await userDoc.save();
+      }
+    }
+
+    return res.status(200).json({ msg: "webhook received successfully" });
+  } catch(err){
+    console.error('[Webhook] Error:', err);
+    return res.status(500).json({ msg: err.message });
+  }
+}
+
+// Expose handler for app-level raw route mounting
+paymentrouter.webhookHandler = webhookHandler;
+
 module.exports=paymentrouter;

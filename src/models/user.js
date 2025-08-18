@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const validator=require("validator" );
 const bcrypt=require("bcrypt");
 const jwt = require("jsonwebtoken");    
+const { memberShipAmount } = require("../utils/constant");
 const UserSchema = mongoose.Schema({
     firstName:{
     type:String,
@@ -59,6 +60,14 @@ type:String,
     //     }   
     // },
     },
+    isPremium:{
+        type:Boolean,
+        default:false,
+    },
+    memberShipType:{
+        type:String,
+    },
+    
     photoUrl:{
         type:String,
         default:"https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fwww.gravatar.com%2Favatar%2F2c7d99fe281ecd3bcd65ab915bac6dd5%3Fs%3D250",

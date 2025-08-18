@@ -26,6 +26,18 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
+
+// Routes (require early so we can attach raw webhook before json parser)
+const authRouter = require("./routes/auth");
+const profileRouter = require("./routes/profile");
+const requestRouter = require("./routes/requests");
+const userRouter = require("./routes/user");
+const paymentRouter = require("./routes/payment");
+
+// Razorpay webhook must use raw body for signature verification; register BEFORE express.json()
+app.post("/api/payment/webhook", express.raw({ type: "application/json" }), paymentRouter.webhookHandler);
+
+// Standard middleware
 app.use(express.json());
 app.use(cookieParser());
 
@@ -34,13 +46,6 @@ app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
-
-// Routes
-const authRouter = require("./routes/auth");
-const profileRouter = require("./routes/profile");
-const requestRouter = require("./routes/requests");
-const userRouter = require("./routes/user");
-const paymentRouter = require("./routes/payment");
 
 app.use("/api", authRouter);
 app.use("/api", profileRouter);
