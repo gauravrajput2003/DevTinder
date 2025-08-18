@@ -2,7 +2,8 @@ const express = require("express");
 const connDB = require("./config/database");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-require('dotenv').config();
+const path = require("path");
+require('dotenv').config({ path: path.join(__dirname, "../.env") });
 // Initialize Express app
 const app = express();
 // Trust proxy for cookies when using HTTPS (Nginx, etc.)
