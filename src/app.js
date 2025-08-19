@@ -6,7 +6,7 @@ const path = require("path");
 require('dotenv').config({ path: path.join(__dirname, "../.env") });
 // Initialize Express app
 const app = express();
-// Trust proxy for cookies when using HTTPS (Nginx, etc.)
+const http=require("http");
 app.set("trust proxy", 1);
 //crons jb
 require("./utils/cronsjob");
@@ -34,6 +34,7 @@ const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/requests");
 const userRouter = require("./routes/user");
 const paymentRouter = require("./routes/payment");
+const initalizesocet = require("./utils/socket");
 
 // Razorpay webhook must use raw body for signature verification; register BEFORE express.json()
 app.post("/api/payment/webhook", express.raw({ type: "application/json" }), paymentRouter.webhookHandler);
@@ -54,16 +55,16 @@ app.use("/api", requestRouter);
 app.use("/api", userRouter);
 app.use("/api", paymentRouter);
 
-// Health check routes
-app.get("/", (_req, res) => res.status(200).send("OK"));
-app.get("/api", (_req, res) => res.status(200).send("API OK"));
+const server=http.createServer(app);
+initalizesocet(server);
 
 // Connect to DB and start server
 connDB()
   .then(() => {
     console.log("Database connected successfully");
     const PORT = 9931;
-    app.listen(PORT, "0.0.0.0", () => {
+    //although i used app over here ,before socket.io
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}...`);
     });
   })
