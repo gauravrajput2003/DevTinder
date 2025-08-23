@@ -34,6 +34,7 @@ const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/requests");
 const userRouter = require("./routes/user");
 const paymentRouter = require("./routes/payment");
+const chatRouter = require("./routes/chat");
 const initalizesocet = require("./utils/socket");
 
 // Razorpay webhook must use raw body for signature verification; register BEFORE express.json()
@@ -54,6 +55,7 @@ app.use("/api", profileRouter);
 app.use("/api", requestRouter);
 app.use("/api", userRouter);
 app.use("/api", paymentRouter);
+app.use("/api/chat", chatRouter);
 
 const server=http.createServer(app);
 initalizesocet(server);
