@@ -14,9 +14,23 @@ const validateSignup=(req)=>{
         throw new Error("password is weak");
     }
 }
-const validateEditProfile=(req)=>{
-    const allowed=["firstName","lastName","email","skills","photoUrl","about"];
-  const isEditAllowed=Object.keys(req.body).every((field)=>allowed.includes(field));
-  return isEditAllowed;
+const validateEditProfile = (req) => {
+    const allowed = ["firstName", "lastName", "email", "skills", "photoUrl", "about"];
+    const keys = Object.keys(req.body);
+    // Only allow allowed fields
+    const isEditAllowed = keys.every((field) => allowed.includes(field));
+    if (!isEditAllowed) return false;
+    // Only validate firstName if present (for PATCH)
+    if (typeof req.body.firstName !== 'undefined') {
+        if (!req.body.firstName || req.body.firstName.length < 4 || req.body.firstName.length > 50) {
+            throw new Error("First name must be 4-50 characters if provided.");
+        }
+    }
+    if (typeof req.body.lastName !== 'undefined') {
+        if (req.body.lastName.length > 50) {
+            throw new Error("Last name must be at most 50 characters.");
+        }
+    }
+    return true;
 }
 module.exports={validateSignup,validateEditProfile}
